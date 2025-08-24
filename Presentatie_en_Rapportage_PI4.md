@@ -2,8 +2,11 @@
 ## JDM Patiënt Portal - DevOps Implementatie
 
 ### Auteur: Jose Kaanene Torres van Grinsven
+### Studentnummer: 2204077
 ### Datum: Augustus 2025
 ### Opleiding: HBO-ICT, Individueel Project
+
+**⚠️ Disclaimer: Dit project is individueel uitgevoerd conform de optie 'Werken individueel' met toestemming van de docent.**
 
 ---
 

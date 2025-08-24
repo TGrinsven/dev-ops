@@ -9,6 +9,10 @@
 
 ---
 
+## ⚠️ Project Disclaimer
+
+**Dit project is individueel uitgevoerd conform de optie 'Werken individueel' met toestemming van de docent.**
+
 ## Inhoudsopgave
 
 1. [Inleiding](#1-inleiding)
@@ -66,6 +70,8 @@ Als individuele DevOps engineer is mijn opdracht:
 ### 1.3 Aanpak
 
 Gekozen voor een pragmatische benadering: een minimale maar volledig functionele HTML-applicatie die alle DevOps-competenties demonstreert zonder onnodige applicatie-complexiteit. De focus ligt op het proces, niet op de applicatie zelf.
+
+Platform keuze: **Railway boven Azure** voor snellere iteratie en lagere kosten binnen student budget.
 
 ---
 

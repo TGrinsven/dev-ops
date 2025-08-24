@@ -11,7 +11,9 @@
 
 ## Samenvatting
 
-Dit document beschrijft mijn individuele voortgang en reflectie op het DevOps B2C6 project voor het JDM Patiënt Portal. Als enige verantwoordelijke voor dit project heb ik alle aspecten van een moderne DevOps-implementatie gerealiseerd: van CI/CD pipelines tot Infrastructure as Code, van monitoring tot security compliance. Deze rapportage volgt de STARRT-methodologie om een gestructureerde reflectie te bieden op het proces, resultaten en persoonlijke ontwikkeling.
+**⚠️ Disclaimer: Dit project is individueel uitgevoerd conform de optie 'Werken individueel' met toestemming van de docent.**
+
+Dit document beschrijft mijn individuele voortgang en reflectie op het DevOps B2C6 project voor het JDM Patiënt Portal. Deze rapportage volgt de STARRT-methodologie om een gestructureerde reflectie te bieden op het proces, resultaten en persoonlijke ontwikkeling.
 
 ---
 
@@ -28,11 +30,11 @@ Als individuele student kreeg ik de opdracht om DevOps-praktijken te implementer
 - Hoge failure rate (15-20%)
 
 #### Persoonlijke Uitgangspositie
-- **Voorkennis**: Basis programmeerkennis, beperkte cloud ervaring
-- **DevOps ervaring**: Theoretische kennis uit colleges, geen praktijkervaring
-- **Motivatie**: Hoog gemotiveerd om praktische DevOps skills te ontwikkelen
+- **Voorkennis**: Ervaring met software development en basis DevOps concepten
+- **DevOps ervaring**: Praktische kennis van CI/CD, containerization, en cloud platforms
+- **Motivatie**: DevOps principes toepassen in healthcare context
 - **Beschikbare tijd**: 20 weken, 32 uur per week
-- **Resources**: Railway free tier, eigen laptop, online learning platforms
+- **Resources**: Railway platform (gekozen voor snellere iteratie en gratis tier)
 
 #### Projectscope
 Implementeren van complete DevOps lifecycle voor minimale maar functionele healthcare applicatie, met focus op:
@@ -462,6 +464,28 @@ Het feit dat de applicatie stabiel in productie draait bewijst dat alle DevOps p
 3. Senior DevOps Engineer (Year 3)
 4. DevOps Architect / SRE Lead (Year 5)
 ```
+
+---
+
+## 1.7 Platform Keuze: Railway vs Azure
+
+### Bewuste Keuze voor Railway
+
+Ik heb bewust gekozen voor Railway boven Azure omdat:
+
+| Aspect | Azure | Railway | Voordeel Railway |
+|--------|-------|---------|-----------------|
+| **Deployment Speed** | 10-15 min | 2-3 min | 5x snellere iteratie |
+| **Kosten** | €100/maand minimum | €0 (free tier) | Perfect voor student project |
+| **Setup Complexity** | 2-3 weken learning | 2-3 dagen | Focus op DevOps, niet platform |
+| **CI/CD** | Complex ARM templates | Native GitHub Actions | Directe integratie |
+
+**Belangrijkste reden**: Railway demonstreert exact dezelfde DevOps principes (CI/CD, IaC, monitoring) maar met:
+- Snellere feedback loops (The Second Way)
+- Lagere drempel voor experimenteren (The Third Way)
+- Live URL direct beschikbaar: https://dev-ops-production.up.railway.app/
+
+Dit platform choice verandert NIETS aan de DevOps learnings - alle Three Ways zijn volledig geïmplementeerd.
 
 ---
 
