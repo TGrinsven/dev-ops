@@ -1,0 +1,411 @@
+name: JDM Portal CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'  # Nightly build at 2 AM
+  workflow_dispatch:  # Manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: jdm-portal
+  AZURE_WEBAPP_PACKAGE_PATH: './dist'
+  NODE_VERSION: '18.x'
+  RESOURCE_GROUP: rg-jdm-portal
+  AZURE_REGION: westeurope
+
+jobs:
+  # Job 1: Code Quality and Security Analysis
+  quality-security:
+    name: Code Quality & Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Full history for better analysis
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: |
+        npm ci
+        npm install -g htmlhint
+        npm install -g jshint
+        npm install -g lighthouse
+
+    - name: 🔍 HTML Validation
+      run: |
+        echo "🔍 Validating HTML files..."
+        htmlhint "**/*.html" --config .htmlhintrc
+        echo "✅ HTML validation completed"
+
+    - name: 🔍 JavaScript Linting
+      run: |
+        echo "🔍 Linting JavaScript files..."
+        jshint src/*.js --config .jshintrc
+        echo "✅ JavaScript linting completed"
+
+    - name: 🔒 Security Audit
+      run: |
+        echo "🔒 Running security audit..."
+        npm audit --audit-level=moderate
+        echo "✅ Security audit completed"
+
+    - name: 🛡️ OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: 'JDM-Portal'
+        path: '.'
+        format: 'HTML'
+        args: >
+          --enableRetired
+          --enableExperimental
+
+    - name: 📊 SonarCloud Scan
+      uses: SonarSource/sonarcloud-github-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.projectKey=jdm-portal
+          -Dsonar.organization=hbo-ict
+          -Dsonar.sources=src
+          -Dsonar.tests=tests
+          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+
+    - name: 📤 Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          reports/
+          dependency-check-report.html
+
+  # Job 2: Build and Test
+  build-test:
+    name: Build & Test Application
+    runs-on: ubuntu-latest
+    needs: quality-security
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: npm ci
+
+    - name: 🧪 Run Unit Tests
+      run: |
+        echo "🧪 Running unit tests..."
+        npm test -- --coverage --watchAll=false
+        echo "✅ Unit tests completed"
+
+    - name: 🧪 Run Integration Tests
+      run: |
+        echo "🧪 Running integration tests..."
+        npm run test:integration
+        echo "✅ Integration tests completed"
+
+    - name: 🏗️ Build Application
+      run: |
+        echo "🏗️ Building application..."
+        mkdir -p dist
+        cp index.html dist/
+        cp -r assets dist/ 2>/dev/null || true
+        echo "✅ Build completed"
+
+    - name: 🎭 Run E2E Tests with Playwright
+      run: |
+        echo "🎭 Installing Playwright..."
+        npx playwright install --with-deps
+        echo "🎭 Running E2E tests..."
+        npm run test:e2e
+        echo "✅ E2E tests completed"
+
+    - name: 📊 Generate Test Report
+      if: always()
+      run: |
+        echo "📊 Generating test report..."
+        npm run test:report || echo "No test report script available"
+
+    - name: 📈 Upload Code Coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-${{ matrix.node-version }}
+
+    - name: 📤 Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts-${{ matrix.node-version }}
+        path: dist/
+
+  # Job 3: Performance Testing
+  performance:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: build-test
+    
+    steps:
+    - name: 📥 Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts-18.x
+        path: dist/
+
+    - name: 🚀 Start Local Server
+      run: |
+        npm install -g http-server
+        http-server dist -p 8080 &
+        sleep 5
+
+    - name: 🏎️ Run Lighthouse Performance Test
+      run: |
+        npm install -g lighthouse
+        lighthouse http://localhost:8080 \
+          --output=json \
+          --output=html \
+          --output-path=./lighthouse-report \
+          --chrome-flags="--headless" \
+          --only-categories=performance,accessibility,best-practices,seo
+
+    - name: 📊 Analyze Performance Results
+      run: |
+        echo "📊 Performance Test Results:"
+        cat lighthouse-report.report.json | jq '.categories.performance.score'
+
+    - name: 📤 Upload Performance Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-reports
+        path: lighthouse-report.*
+
+  # Job 4: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    needs: [build-test, performance]
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    environment:
+      name: staging
+      url: https://jdm-portal-staging.azurewebsites.net
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 📥 Download Build Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts-18.x
+        path: dist/
+
+    - name: 🔐 Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🚀 Deploy to Azure Static Web App
+      uses: Azure/static-web-apps-deploy@v1
+      with:
+        azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING }}
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        action: "upload"
+        app_location: "dist"
+        api_location: ""
+        output_location: ""
+        skip_app_build: true
+
+    - name: 🧪 Run Smoke Tests
+      run: |
+        echo "🧪 Running smoke tests on staging..."
+        curl -f https://jdm-portal-staging.azurewebsites.net/health || exit 1
+        echo "✅ Staging deployment successful"
+
+    - name: 📊 Run Staging Performance Tests
+      run: |
+        npm install -g lighthouse
+        lighthouse https://jdm-portal-staging.azurewebsites.net \
+          --output=json \
+          --output-path=./staging-lighthouse.json \
+          --chrome-flags="--headless"
+
+    - name: 💬 Notify Slack - Staging Deployment
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        text: |
+          Staging Deployment ${{ job.status }}
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Job 5: Deploy to Production
+  deploy-production:
+    name: Deploy to Production Environment
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://jdm-portal.azurewebsites.net
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v3
+
+    - name: 📥 Download Build Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts-18.x
+        path: dist/
+
+    - name: 🔐 Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🔵 Create Blue Deployment Slot
+      run: |
+        az webapp deployment slot create \
+          --name ${{ env.AZURE_WEBAPP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --slot blue \
+          --configuration-source ${{ env.AZURE_WEBAPP_NAME }} || true
+
+    - name: 🚀 Deploy to Blue Slot
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        slot-name: blue
+        package: dist
+
+    - name: 🧪 Health Check on Blue Slot
+      run: |
+        echo "🧪 Running health check on blue slot..."
+        for i in {1..5}; do
+          if curl -f https://${{ env.AZURE_WEBAPP_NAME }}-blue.azurewebsites.net/health; then
+            echo "✅ Health check passed"
+            break
+          fi
+          echo "⏳ Retry $i/5..."
+          sleep 10
+        done
+
+    - name: 🔄 Swap Blue to Production
+      run: |
+        echo "🔄 Swapping blue slot to production..."
+        az webapp deployment slot swap \
+          --name ${{ env.AZURE_WEBAPP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --slot blue \
+          --target-slot production
+
+    - name: ✅ Verify Production Deployment
+      run: |
+        echo "✅ Verifying production deployment..."
+        sleep 30
+        curl -f https://jdm-portal.azurewebsites.net/health || exit 1
+        echo "✅ Production deployment successful"
+
+    - name: 🏷️ Create Release Tag
+      run: |
+        TAG_NAME="v$(date +%Y%m%d-%H%M%S)"
+        git tag -a $TAG_NAME -m "Production release $TAG_NAME"
+        git push origin $TAG_NAME
+
+    - name: 📝 Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        body: |
+          ## 🚀 Production Release
+          
+          **Commit:** ${{ github.sha }}
+          **Deployed by:** ${{ github.actor }}
+          **Environment:** Production
+          
+          ### Changes in this release:
+          - See commit history for details
+        draft: false
+        prerelease: false
+
+    - name: 💬 Notify Slack - Production Deployment
+      uses: 8398a7/action-slack@v3
+      if: always()
+      with:
+        status: ${{ job.status }}
+        text: |
+          🚀 Production Deployment ${{ job.status }}
+          Version: v${{ github.run_number }}
+          URL: https://jdm-portal.azurewebsites.net
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Job 6: Rollback (Manual Trigger)
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: production-rollback
+    
+    steps:
+    - name: 🔐 Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 🔄 Perform Rollback
+      run: |
+        echo "🔄 Rolling back production deployment..."
+        az webapp deployment slot swap \
+          --name ${{ env.AZURE_WEBAPP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --slot blue \
+          --target-slot production
+        echo "✅ Rollback completed"
+
+    - name: 💬 Notify Slack - Rollback
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: |
+          ⚠️ Production Rollback Executed
+          Triggered by: ${{ github.actor }}
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+# Workflow Summary
+# This CI/CD pipeline implements:
+# 1. Code quality and security checks
+# 2. Multi-version Node.js testing
+# 3. Performance testing with Lighthouse
+# 4. Staging deployment with smoke tests
+# 5. Blue-green production deployment
+# 6. Automated rollback capability
+# 7. Comprehensive notifications
+# 8. Release management

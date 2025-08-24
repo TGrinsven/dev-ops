@@ -1,0 +1,102 @@
+# Railway Deployment Workflow
+# This workflow automatically deploys your app to Railway when you push to the main branch
+# Student-friendly version with clear explanations for each step
+
+name: Deploy to Railway
+
+# When this workflow runs:
+# - Triggers when code is pushed to the main branch
+# - Can also be triggered manually from the Actions tab
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual triggering
+
+# Define the jobs that will run
+jobs:
+  # Job 1: Run tests to ensure code quality
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Get the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      # Step 2: Set up Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      # Step 3: Install project dependencies
+      - name: Install dependencies
+        run: npm ci
+        
+      # Step 4: Run the test suite
+      - name: Run tests
+        run: npm test
+        
+      # Step 5: Display test completion
+      - name: Tests completed
+        run: echo "✅ All tests passed successfully!"
+
+  # Job 2: Deploy to Railway (only runs if tests pass)
+  deploy:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: test  # This job depends on the test job completing successfully
+    
+    # Only deploy from the main branch
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      # Step 1: Get the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # Step 2: Install Railway CLI
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      
+      # Step 3: Deploy to Railway
+      # The RAILWAY_TOKEN secret must be added to your GitHub repository
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "🚂 Starting Railway deployment..."
+          railway up --service ${{ vars.RAILWAY_SERVICE_NAME || 'web' }}
+          echo "✅ Deployment complete!"
+      
+      # Step 4: Display deployment URL (optional)
+      - name: Deployment info
+        run: |
+          echo "🎉 Your app has been deployed to Railway!"
+          echo "Check your Railway dashboard for the deployment URL"
+          echo "https://railway.app/dashboard"
+
+# Workflow configuration notes for students:
+# 
+# SETUP INSTRUCTIONS:
+# 1. Create a Railway account at https://railway.app
+# 2. Create a new project in Railway
+# 3. Get your Railway API token from Account Settings > Tokens
+# 4. Add the token to GitHub:
+#    - Go to your repo Settings > Secrets and variables > Actions
+#    - Create a new secret called RAILWAY_TOKEN
+#    - Paste your Railway token as the value
+# 5. (Optional) Add a variable called RAILWAY_SERVICE_NAME if your service name is different from 'web'
+#
+# TROUBLESHOOTING:
+# - If deployment fails, check that your RAILWAY_TOKEN is correctly set
+# - Ensure your Railway project is properly configured
+# - Check the Actions tab in GitHub for detailed error messages
+#
+# LEARNING RESOURCES:
+# - Railway docs: https://docs.railway.app
+# - GitHub Actions docs: https://docs.github.com/en/actions
+# - Node.js CI/CD best practices: https://nodejs.org/en/docs/guides

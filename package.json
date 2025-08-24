@@ -1,0 +1,300 @@
+{
+  "name": "jdm-portal",
+  "version": "1.0.0",
+  "description": "A modern web portal application for efficient data management and user interaction",
+  "main": "src/app.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "start": "node src/app.js",
+    "start:prod": "cross-env NODE_ENV=production node src/app.js",
+    "dev": "nodemon src/app.js",
+    "dev:debug": "cross-env DEBUG=* nodemon --inspect src/app.js",
+    "build": "npm run clean && npm run build:client && npm run build:server",
+    "build:client": "webpack --mode production",
+    "build:server": "babel src -d dist --copy-files",
+    "clean": "rimraf dist coverage .nyc_output",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageReporters=text-lcov | coveralls",
+    "test:unit": "jest --testPathPattern=tests/unit",
+    "test:integration": "jest --testPathPattern=tests/integration --runInBand",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "security:check": "npm audit && snyk test",
+    "db:setup": "node scripts/setup-db.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/seed.js",
+    "db:reset": "npm run db:drop && npm run db:setup && npm run db:migrate && npm run db:seed",
+    "db:drop": "node scripts/drop-db.js",
+    "deploy": "npm run build && npm run deploy:azure",
+    "deploy:azure": "az webapp up --name jdm-portal-app --resource-group jdm-portal-rg",
+    "deploy:docker": "docker build -t jdm-portal . && docker push jdmportal.azurecr.io/jdm-portal:latest",
+    "deploy:ftp": "node scripts/deploy-ftp.js",
+    "package": "npm run build && tar -czf dist.tar.gz dist/",
+    "docs": "jsdoc -c jsdoc.json",
+    "docs:api": "apidoc -i src/routes -o docs/api",
+    "precommit": "lint-staged",
+    "prepush": "npm run test",
+    "validate": "npm run lint && npm run test:unit && npm run security:check",
+    "monitor": "pm2 monit",
+    "logs": "pm2 logs",
+    "logs:error": "pm2 logs --err",
+    "restart": "pm2 restart all",
+    "stop": "pm2 stop all",
+    "postinstall": "husky install",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-organization/jdm-portal.git"
+  },
+  "keywords": [
+    "portal",
+    "nodejs",
+    "express",
+    "azure",
+    "mongodb",
+    "rest-api",
+    "web-application",
+    "data-management"
+  ],
+  "author": "Jose Kaanene Torres van Grinsven <j.torres@student.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-organization/jdm-portal/issues"
+  },
+  "homepage": "https://github.com/your-organization/jdm-portal#readme",
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "express-rate-limit": "^6.10.0",
+    "helmet": "^7.0.0",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "config": "^3.3.9",
+    "applicationinsights": "^2.7.3",
+    "winston": "^3.10.0",
+    "winston-daily-rotate-file": "^4.7.1",
+    "mongoose": "^7.4.3",
+    "mongodb": "^5.7.0",
+    "redis": "^4.6.7",
+    "ioredis": "^5.3.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "passport": "^0.6.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "joi": "^17.9.2",
+    "yup": "^1.2.0",
+    "axios": "^1.4.0",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.9.4",
+    "sendgrid": "^5.2.3",
+    "@sendgrid/mail": "^7.7.0",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.32.5",
+    "uuid": "^9.0.0",
+    "moment": "^2.29.4",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "async": "^3.2.4",
+    "socket.io": "^4.5.2",
+    "socket.io-client": "^4.5.2",
+    "bull": "^4.11.3",
+    "agenda": "^5.0.0",
+    "node-cron": "^3.0.2",
+    "celebrate": "^15.0.1",
+    "express-validator": "^7.0.1",
+    "express-async-handler": "^1.2.0",
+    "express-swagger-generator": "^1.1.17",
+    "swagger-ui-express": "^5.0.0",
+    "swagger-jsdoc": "^6.2.8"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.22.10",
+    "@babel/core": "^7.22.10",
+    "@babel/preset-env": "^7.22.10",
+    "@babel/preset-typescript": "^7.22.5",
+    "@playwright/test": "^1.37.0",
+    "@types/express": "^4.17.17",
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "apidoc": "^0.54.0",
+    "babel-jest": "^29.6.3",
+    "babel-loader": "^9.1.3",
+    "chai": "^4.3.7",
+    "chai-http": "^4.4.0",
+    "concurrently": "^8.2.0",
+    "coveralls": "^3.1.1",
+    "cross-env": "^7.0.3",
+    "css-loader": "^6.8.1",
+    "eslint": "^8.47.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.0",
+    "eslint-plugin-jest": "^27.2.3",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-security": "^1.7.1",
+    "faker": "^5.5.3",
+    "husky": "^8.0.3",
+    "jest": "^29.6.3",
+    "jest-extended": "^4.0.1",
+    "jest-html-reporter": "^3.10.2",
+    "jsdoc": "^4.0.2",
+    "lint-staged": "^14.0.0",
+    "mocha": "^10.2.0",
+    "nock": "^13.3.2",
+    "nodemon": "^3.0.1",
+    "nyc": "^15.1.0",
+    "playwright": "^1.37.0",
+    "pm2": "^5.3.0",
+    "prettier": "^3.0.2",
+    "rimraf": "^5.0.1",
+    "sinon": "^15.2.0",
+    "snyk": "^1.1219.0",
+    "style-loader": "^3.3.3",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "git add"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run validate",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "./coverage",
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,ts,tsx}",
+      "!src/**/*.test.{js,jsx,ts,tsx}",
+      "!src/**/*.spec.{js,jsx,ts,tsx}",
+      "!src/**/index.{js,jsx,ts,tsx}"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/tests/**/*.spec.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@config/(.*)$": "<rootDir>/config/$1",
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+      "^@models/(.*)$": "<rootDir>/src/models/$1",
+      "^@controllers/(.*)$": "<rootDir>/src/controllers/$1",
+      "^@services/(.*)$": "<rootDir>/src/services/$1",
+      "^@middleware/(.*)$": "<rootDir>/src/middleware/$1"
+    },
+    "transform": {
+      "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+    },
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "reporters": [
+      "default",
+      [
+        "jest-html-reporter",
+        {
+          "pageTitle": "JDM Portal Test Report",
+          "outputPath": "./coverage/test-report.html",
+          "includeFailureMsg": true,
+          "includeSuiteFailure": true
+        }
+      ]
+    ]
+  },
+  "nodemonConfig": {
+    "watch": [
+      "src",
+      "config"
+    ],
+    "ext": "js,json",
+    "ignore": [
+      "tests/**",
+      "dist/**",
+      "node_modules/**"
+    ],
+    "delay": 1000,
+    "env": {
+      "NODE_ENV": "development",
+      "DEBUG": "app:*"
+    }
+  },
+  "pm2": {
+    "apps": [
+      {
+        "name": "jdm-portal",
+        "script": "./src/app.js",
+        "instances": "max",
+        "exec_mode": "cluster",
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "error_file": "./logs/err.log",
+        "out_file": "./logs/out.log",
+        "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+        "merge_logs": true,
+        "max_memory_restart": "1G",
+        "node_args": "--max-old-space-size=4096"
+      }
+    ]
+  },
+  "babel": {
+    "presets": [
+      "@babel/preset-env",
+      "@babel/preset-typescript"
+    ],
+    "plugins": [
+      "@babel/plugin-transform-runtime"
+    ]
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

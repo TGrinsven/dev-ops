@@ -1,0 +1,648 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "metadata": {
+        "description": "ARM Template for JDM Portal - Complete Azure Infrastructure",
+        "author": "DevOps B2C6 Student"
+    },
+    "parameters": {
+        "environment": {
+            "type": "string",
+            "defaultValue": "production",
+            "allowedValues": [
+                "development",
+                "staging",
+                "production"
+            ],
+            "metadata": {
+                "description": "The environment for deployment"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources"
+            }
+        },
+        "appServicePlanSku": {
+            "type": "string",
+            "defaultValue": "S1",
+            "allowedValues": [
+                "F1",
+                "B1",
+                "B2",
+                "B3",
+                "S1",
+                "S2",
+                "S3",
+                "P1V2",
+                "P2V2",
+                "P3V2"
+            ],
+            "metadata": {
+                "description": "The SKU of App Service Plan"
+            }
+        },
+        "appInsightsLocation": {
+            "type": "string",
+            "defaultValue": "West Europe",
+            "metadata": {
+                "description": "Location for Application Insights"
+            }
+        },
+        "enableAutoScale": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Enable auto-scaling for App Service Plan"
+            }
+        },
+        "minCapacity": {
+            "type": "int",
+            "defaultValue": 1,
+            "minValue": 1,
+            "maxValue": 10,
+            "metadata": {
+                "description": "Minimum number of instances for auto-scale"
+            }
+        },
+        "maxCapacity": {
+            "type": "int",
+            "defaultValue": 3,
+            "minValue": 1,
+            "maxValue": 20,
+            "metadata": {
+                "description": "Maximum number of instances for auto-scale"
+            }
+        },
+        "targetCpuPercentage": {
+            "type": "int",
+            "defaultValue": 70,
+            "minValue": 20,
+            "maxValue": 90,
+            "metadata": {
+                "description": "Target CPU percentage for auto-scale"
+            }
+        }
+    },
+    "variables": {
+        "appNamePrefix": "jdm-portal",
+        "appName": "[concat(variables('appNamePrefix'), '-', parameters('environment'))]",
+        "appServicePlanName": "[concat('asp-', variables('appName'))]",
+        "appInsightsName": "[concat('appi-', variables('appName'))]",
+        "storageAccountName": "[toLower(concat('st', uniqueString(resourceGroup().id)))]",
+        "keyVaultName": "[concat('kv-', take(uniqueString(resourceGroup().id), 8), '-', parameters('environment'))]",
+        "logAnalyticsName": "[concat('log-', variables('appName'))]",
+        "autoScaleSettingsName": "[concat('autoscale-', variables('appServicePlanName'))]",
+        "actionGroupName": "[concat('ag-', variables('appName'))]",
+        "alertRuleNameHighCpu": "[concat('alert-cpu-', variables('appName'))]",
+        "alertRuleNameHighMemory": "[concat('alert-memory-', variables('appName'))]",
+        "alertRuleNameResponseTime": "[concat('alert-response-', variables('appName'))]",
+        "alertRuleNameErrors": "[concat('alert-errors-', variables('appName'))]",
+        "cdnProfileName": "[concat('cdn-', variables('appName'))]",
+        "cdnEndpointName": "[concat('endpoint-', variables('appName'))]",
+        "trafficManagerProfileName": "[concat('tm-', variables('appName'))]",
+        "workspaceName": "[concat('workspace-', variables('appName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-09-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "accessTier": "Hot",
+                "supportsHttpsTrafficOnly": true,
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": false,
+                "encryption": {
+                    "services": {
+                        "blob": {
+                            "enabled": true,
+                            "keyType": "Account"
+                        },
+                        "file": {
+                            "enabled": true,
+                            "keyType": "Account"
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "bypass": "AzureServices"
+                }
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal",
+                "ManagedBy": "ARM-Template"
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces",
+            "apiVersion": "2021-12-01-preview",
+            "name": "[variables('logAnalyticsName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "sku": {
+                    "name": "PerGB2018"
+                },
+                "retentionInDays": 30,
+                "features": {
+                    "enableLogAccessUsingOnlyResourcePermissions": true
+                },
+                "workspaceCapping": {
+                    "dailyQuotaGb": 1
+                }
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/components",
+            "apiVersion": "2020-02-02",
+            "name": "[variables('appInsightsName')]",
+            "location": "[parameters('appInsightsLocation')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+            ],
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]",
+                "IngestionMode": "LogAnalytics",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled",
+                "RetentionInDays": 90,
+                "SamplingPercentage": 100
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('appServicePlanName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "[parameters('appServicePlanSku')]"
+            },
+            "kind": "linux",
+            "properties": {
+                "reserved": true,
+                "targetWorkerCount": 0,
+                "targetWorkerSizeId": 0,
+                "zoneRedundant": false
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2021-03-01",
+            "name": "[variables('appName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            ],
+            "kind": "app,linux",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "enabled": true,
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "reserved": true,
+                "httpsOnly": true,
+                "clientAffinityEnabled": false,
+                "clientCertEnabled": false,
+                "hostNamesDisabled": false,
+                "siteConfig": {
+                    "numberOfWorkers": 1,
+                    "linuxFxVersion": "NODE|18-lts",
+                    "alwaysOn": "[if(equals(parameters('appServicePlanSku'), 'F1'), 'false', 'true')]",
+                    "http20Enabled": true,
+                    "minTlsVersion": "1.2",
+                    "ftpsState": "Disabled",
+                    "healthCheckPath": "/health",
+                    "appSettings": [
+                        {
+                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).InstrumentationKey]"
+                        },
+                        {
+                            "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                            "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+                        },
+                        {
+                            "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+                            "value": "~3"
+                        },
+                        {
+                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                            "value": "~18"
+                        },
+                        {
+                            "name": "ENVIRONMENT",
+                            "value": "[parameters('environment')]"
+                        },
+                        {
+                            "name": "STORAGE_CONNECTION_STRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';EndpointSuffix=core.windows.net;AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2021-09-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "KEY_VAULT_URI",
+                            "value": "[concat('https://', variables('keyVaultName'), '.vault.azure.net/')]"
+                        }
+                    ],
+                    "cors": {
+                        "allowedOrigins": [
+                            "https://jdm-portal.nl",
+                            "https://www.jdm-portal.nl"
+                        ],
+                        "supportCredentials": true
+                    },
+                    "ipSecurityRestrictions": [
+                        {
+                            "ipAddress": "Any",
+                            "action": "Allow",
+                            "priority": 1,
+                            "name": "Allow all",
+                            "description": "Allow all access"
+                        }
+                    ],
+                    "scmIpSecurityRestrictions": [
+                        {
+                            "ipAddress": "Any",
+                            "action": "Allow",
+                            "priority": 1,
+                            "name": "Allow all",
+                            "description": "Allow all access"
+                        }
+                    ]
+                }
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites/slots",
+            "apiVersion": "2021-03-01",
+            "name": "[concat(variables('appName'), '/blue')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('appName'))]"
+            ],
+            "kind": "app,linux",
+            "properties": {
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "reserved": true
+            },
+            "condition": "[equals(parameters('environment'), 'production')]",
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal",
+                "Slot": "Blue"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2021-11-01-preview",
+            "name": "[variables('keyVaultName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('appName'))]"
+            ],
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": false,
+                "enabledForTemplateDeployment": true,
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "enableRbacAuthorization": false,
+                "enablePurgeProtection": "[if(equals(parameters('environment'), 'production'), 'true', 'false')]",
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "bypass": "AzureServices"
+                },
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.Web/sites', variables('appName')), '2021-03-01', 'Full').identity.principalId]",
+                        "permissions": {
+                            "keys": ["get", "list"],
+                            "secrets": ["get", "list"],
+                            "certificates": ["get", "list"]
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/autoscalesettings",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[variables('autoScaleSettingsName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]"
+            ],
+            "condition": "[parameters('enableAutoScale')]",
+            "properties": {
+                "enabled": true,
+                "targetResourceUri": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "profiles": [
+                    {
+                        "name": "Default",
+                        "capacity": {
+                            "minimum": "[parameters('minCapacity')]",
+                            "maximum": "[parameters('maxCapacity')]",
+                            "default": "[parameters('minCapacity')]"
+                        },
+                        "rules": [
+                            {
+                                "metricTrigger": {
+                                    "metricName": "CpuPercentage",
+                                    "metricResourceUri": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                                    "timeGrain": "PT1M",
+                                    "statistic": "Average",
+                                    "timeWindow": "PT5M",
+                                    "timeAggregation": "Average",
+                                    "operator": "GreaterThan",
+                                    "threshold": "[parameters('targetCpuPercentage')]"
+                                },
+                                "scaleAction": {
+                                    "direction": "Increase",
+                                    "type": "ChangeCount",
+                                    "value": "1",
+                                    "cooldown": "PT5M"
+                                }
+                            },
+                            {
+                                "metricTrigger": {
+                                    "metricName": "CpuPercentage",
+                                    "metricResourceUri": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                                    "timeGrain": "PT1M",
+                                    "statistic": "Average",
+                                    "timeWindow": "PT5M",
+                                    "timeAggregation": "Average",
+                                    "operator": "LessThan",
+                                    "threshold": 30
+                                },
+                                "scaleAction": {
+                                    "direction": "Decrease",
+                                    "type": "ChangeCount",
+                                    "value": "1",
+                                    "cooldown": "PT5M"
+                                }
+                            },
+                            {
+                                "metricTrigger": {
+                                    "metricName": "MemoryPercentage",
+                                    "metricResourceUri": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                                    "timeGrain": "PT1M",
+                                    "statistic": "Average",
+                                    "timeWindow": "PT5M",
+                                    "timeAggregation": "Average",
+                                    "operator": "GreaterThan",
+                                    "threshold": 80
+                                },
+                                "scaleAction": {
+                                    "direction": "Increase",
+                                    "type": "ChangeCount",
+                                    "value": "1",
+                                    "cooldown": "PT5M"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/actionGroups",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('actionGroupName')]",
+            "location": "Global",
+            "properties": {
+                "groupShortName": "JDMAlerts",
+                "enabled": true,
+                "emailReceivers": [
+                    {
+                        "name": "DevOps Team",
+                        "emailAddress": "devops@jdm-portal.nl",
+                        "useCommonAlertSchema": true
+                    }
+                ],
+                "smsReceivers": [],
+                "webhookReceivers": [
+                    {
+                        "name": "Slack Webhook",
+                        "serviceUri": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+                        "useCommonAlertSchema": true
+                    }
+                ]
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "[variables('alertRuleNameHighCpu')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('appName'))]",
+                "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+            ],
+            "properties": {
+                "severity": 2,
+                "enabled": true,
+                "scopes": [
+                    "[resourceId('Microsoft.Web/sites', variables('appName'))]"
+                ],
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT15M",
+                "criteria": {
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+                    "allOf": [
+                        {
+                            "name": "High CPU Usage",
+                            "metricName": "CpuPercentage",
+                            "metricNamespace": "Microsoft.Web/sites",
+                            "operator": "GreaterThan",
+                            "threshold": 80,
+                            "timeAggregation": "Average",
+                            "criterionType": "StaticThresholdCriterion"
+                        }
+                    ]
+                },
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Web/sites",
+                "actions": [
+                    {
+                        "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                    }
+                ],
+                "description": "Alert when CPU usage is greater than 80%"
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "[variables('alertRuleNameResponseTime')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('appName'))]",
+                "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+            ],
+            "properties": {
+                "severity": 3,
+                "enabled": true,
+                "scopes": [
+                    "[resourceId('Microsoft.Web/sites', variables('appName'))]"
+                ],
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT15M",
+                "criteria": {
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+                    "allOf": [
+                        {
+                            "name": "High Response Time",
+                            "metricName": "HttpResponseTime",
+                            "metricNamespace": "Microsoft.Web/sites",
+                            "operator": "GreaterThan",
+                            "threshold": 3,
+                            "timeAggregation": "Average",
+                            "criterionType": "StaticThresholdCriterion"
+                        }
+                    ]
+                },
+                "autoMitigate": true,
+                "targetResourceType": "Microsoft.Web/sites",
+                "actions": [
+                    {
+                        "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                    }
+                ],
+                "description": "Alert when response time is greater than 3 seconds"
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles",
+            "apiVersion": "2021-06-01",
+            "name": "[variables('cdnProfileName')]",
+            "location": "global",
+            "condition": "[equals(parameters('environment'), 'production')]",
+            "sku": {
+                "name": "Standard_Microsoft"
+            },
+            "properties": {},
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/endpoints",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('cdnProfileName'), '/', variables('cdnEndpointName'))]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', variables('cdnProfileName'))]",
+                "[resourceId('Microsoft.Web/sites', variables('appName'))]"
+            ],
+            "condition": "[equals(parameters('environment'), 'production')]",
+            "properties": {
+                "originHostHeader": "[reference(resourceId('Microsoft.Web/sites', variables('appName'))).defaultHostName]",
+                "isHttpAllowed": false,
+                "isHttpsAllowed": true,
+                "queryStringCachingBehavior": "IgnoreQueryString",
+                "optimizationType": "GeneralWebDelivery",
+                "origins": [
+                    {
+                        "name": "origin1",
+                        "properties": {
+                            "hostName": "[reference(resourceId('Microsoft.Web/sites', variables('appName'))).defaultHostName]",
+                            "httpPort": 80,
+                            "httpsPort": 443,
+                            "originHostHeader": "[reference(resourceId('Microsoft.Web/sites', variables('appName'))).defaultHostName]",
+                            "priority": 1,
+                            "weight": 1000,
+                            "enabled": true
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "Environment": "[parameters('environment')]",
+                "Project": "JDM-Portal"
+            }
+        }
+    ],
+    "outputs": {
+        "websiteUrl": {
+            "type": "string",
+            "value": "[concat('https://', reference(resourceId('Microsoft.Web/sites', variables('appName'))).defaultHostName)]"
+        },
+        "appInsightsInstrumentationKey": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).InstrumentationKey]"
+        },
+        "appInsightsConnectionString": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName'))).ConnectionString]"
+        },
+        "storageAccountName": {
+            "type": "string",
+            "value": "[variables('storageAccountName')]"
+        },
+        "keyVaultUri": {
+            "type": "string",
+            "value": "[concat('https://', variables('keyVaultName'), '.vault.azure.net/')]"
+        },
+        "cdnEndpoint": {
+            "type": "string",
+            "value": "[if(equals(parameters('environment'), 'production'), concat('https://', variables('cdnEndpointName'), '.azureedge.net'), 'N/A')]"
+        }
+    }
+}

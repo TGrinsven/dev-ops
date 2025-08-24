@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="JDM Patiënt Portal - CMAS Monitoring voor Juveniele Dermatomyositis">
+    <title>JDM Patiënt Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0052CC 0%, #003d94 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e9ecef;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-title {
+            color: #495057;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .score-display {
+            font-size: 3em;
+            color: #0052CC;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .score-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-healthy {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+            }
+        }
+
+        .exercise-list {
+            list-style: none;
+            margin-top: 15px;
+        }
+
+        .exercise-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .exercise-name {
+            color: #495057;
+            font-size: 0.95em;
+        }
+
+        .exercise-score {
+            background: #0052CC;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            color: #0052CC;
+            font-weight: bold;
+        }
+
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+            
+            .score-display {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JDM Patiënt Portal</h1>
+            <p>Childhood Myositis Assessment Scale (CMAS) Monitoring</p>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-title">Huidige CMAS Score</div>
+                <div class="score-display" id="currentScore">39</div>
+                <div class="score-label">van maximaal 52 punten</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 75%"></div>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value">14</div>
+                        <div class="metric-label">Oefeningen</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">87%</div>
+                        <div class="metric-label">Voltooiing</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Laatste Metingen</div>
+                <ul class="exercise-list">
+                    <li class="exercise-item">
+                        <span class="exercise-name">Hoofd optillen</span>
+                        <span class="exercise-score">4/4</span>
+                    </li>
+                    <li class="exercise-item">
+                        <span class="exercise-name">Been optillen</span>
+                        <span class="exercise-score">3/4</span>
+                    </li>
+                    <li class="exercise-item">
+                        <span class="exercise-name">Rechte been raise</s    pan>
+                        <span class="exercise-score">4/4</span>
+                    </li>
+                    <li class="exercise-item">
+                        <span class="exercise-name">Zitten vanuit liggen</span>
+                        <span class="exercise-score">3/4</span>
+                    </li>
+                    <li class="exercise-item">      
+                        <span class="exercise-name">Sit-ups</span>
+                        <span class="exercise-score">2/4</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Patiënt Informatie</div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Patiënt ID:</strong> <span id="patientId">JDM-2024-001</span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Laatste meting:</strong> <span id="lastMeasurement"></span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Volgende afspraak:</strong> <span id="nextAppointment"></span>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Status:</strong> 
+                    <span class="status-indicator status-healthy"></span>
+                    <span style="color: #28a745;">Stabiel</span>
+                </div>
+                <button class="button" onclick="startCMASTest()">
+                    Start Nieuwe CMAS Meting
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Trend Analyse</div>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value" style="color: #28a745;">+3</div>
+                        <div class="metric-label">Verandering</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">36</div>
+                        <div class="metric-label">Gemiddeld</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">12</div>
+                        <div class="metric-label">Metingen</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value">6m</div>
+                        <div class="metric-label">Periode</div>
+                    </div>
+                </div>
+                <button class="button" style="background: linear-gradient(135deg, #0052CC 0%, #003d94 100%);" onclick="viewDetailedReport()">
+                    Bekijk Gedetailleerd Rapport
+                </button>
+            </div>
+        </div>
+        
+        <div id="alert" class="alert"></div>
+    </div>
+
+    <script>
+        // Initialize Application Insights (would be configured with actual instrumentation key)
+        const appInsights = {
+            trackEvent: function(name, properties) {
+                console.log('Tracking event:', name, properties);
+                // In production, this would send to Application Insights
+            },
+            trackMetric: function(name, value, properties) {
+                console.log('Tracking metric:', name, value, properties);
+                // In production, this would send to Application Insights
+            }
+        };
+
+        // Set current date/time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            };
+            document.getElementById('lastMeasurement').innerText = now.toLocaleDateString('nl-NL', options);
+            
+            // Set next appointment (30 days from now)
+            const nextDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+            document.getElementById('nextAppointment').innerText = nextDate.toLocaleDateString('nl-NL', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        // Start CMAS Test
+        function startCMASTest() {
+            showAlert('CMAS meting gestart! U wordt doorgestuurd naar het testformulier...');
+            
+            // Track event in Application Insights
+            appInsights.trackEvent('CMAS_Test_Started', {
+                patientId: document.getElementById('patientId').innerText,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Simulate starting test
+            setTimeout(() => {
+                showAlert('Test succesvol geïnitialiseerd. Volg de instructies op het scherm.');
+                updateScore(Math.floor(Math.random() * 10) + 35);
+            }, 2000);
+        }
+
+        // View detailed report
+        function viewDetailedReport() {
+            showAlert('Rapport wordt gegenereerd...');
+            
+            // Track event
+            appInsights.trackEvent('Report_Viewed', {
+                patientId: document.getElementById('patientId').innerText,
+                reportType: 'detailed_trend',
+                timestamp: new Date().toISOString()
+            });
+            
+            setTimeout(() => {
+                showAlert('Rapport is klaar voor download.');
+            }, 1500);
+        }
+
+        // Update CMAS score
+        function updateScore(newScore) {
+            const scoreElement = document.getElementById('currentScore');
+            const progressBar = document.getElementById('progressBar');
+            
+            // Animate score change
+            const currentScore = parseInt(scoreElement.innerText);
+            const increment = newScore > currentScore ? 1 : -1;
+            
+            const animateScore = setInterval(() => {
+                let score = parseInt(scoreElement.innerText);
+                if (score !== newScore) {
+                    score += increment;
+                    scoreElement.innerText = score;
+                    progressBar.style.width = (score / 52 * 100) + '%';
+                } else {
+                    clearInterval(animateScore);
+                    
+                    // Track metric
+                    appInsights.trackMetric('CMAS_Score', newScore, {
+                        patientId: document.getElementById('patientId').innerText,
+                        maxScore: 52,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            }, 50);
+        }
+
+        // Show alert message
+        function showAlert(message) {
+            const alertElement = document.getElementById('alert');
+            alertElement.innerText = message;
+            alertElement.classList.add('show');
+            
+            setTimeout(() => {
+                alertElement.classList.remove('show');
+            }, 5000);
+        }
+
+        // Health check endpoint simulation
+        function healthCheck() {
+            return {
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                uptime: performance.now() / 1000,
+                version: '1.0.0',
+                environment: 'production'
+            };
+        }
+
+        // Performance monitoring
+        window.addEventListener('load', () => {
+            const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+            
+            appInsights.trackMetric('Page_Load_Time', loadTime, {
+                page: 'dashboard',
+                userAgent: navigator.userAgent
+            });
+            
+            console.log(`Page loaded in ${loadTime}ms`);
+        });
+
+        // Error tracking
+        window.addEventListener('error', (event) => {
+            appInsights.trackEvent('JavaScript_Error', {
+                message: event.message,
+                source: event.filename,
+                line: event.lineno,
+                column: event.colno,
+                error: event.error ? event.error.toString() : 'Unknown error'
+            });
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateDateTime();
+            
+            // Track page view
+            appInsights.trackEvent('Page_View', {
+                page: 'dashboard',
+                patientId: document.getElementById('patientId').innerText,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Simulate real-time updates
+            setInterval(() => {
+                const randomUpdate = Math.random();
+                if (randomUpdate < 0.1) {
+                    // 10% chance of score update
+                    updateScore(Math.floor(Math.random() * 10) + 35);
+                }
+            }, 30000); // Every 30 seconds
+        });
+
+        // Service Worker registration for offline capability
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then((registration) => {
+                console.log('Service Worker registered:', registration);
+            }).catch((error) => {
+                console.log('Service Worker registration failed:', error);
+            });
+        }
+    </script>
+</body>
+</html>

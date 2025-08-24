@@ -1,0 +1,14 @@
+# Nixpacks configuration for Railway deployment
+# This configures how Railway builds and serves the static JDM Portal site
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x"]
+
+[phases.install]
+cmds = ["npm install --global serve"]
+
+[start]
+cmd = "serve -s . -l $PORT"
+
+[variables]
+NODE_ENV = "production"
