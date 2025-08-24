@@ -10,12 +10,7 @@
       "Cache-Control": "public, max-age=31536000, immutable"
     }
   },
-  "redirects": {
-    "/old-page": {
-      "url": "/new-page",
-      "status": 301
-    }
-  },
+  "redirects": {},
   "routes": {
     "/**": "index.html"
   },
@@ -23,67 +18,3 @@
   "https_only": true,
   "basic_auth": false
 }
-
-// Railway Static Site Configuration
-// ===================================
-// 
-// This file configures how Railway serves your static website
-// Perfect for React, Vue, Angular, or plain HTML/CSS/JS sites
-//
-// CONFIGURATION OPTIONS EXPLAINED:
-//
-// "root": "./" 
-//   - The directory containing your static files
-//   - Usually "./" for the root or "./dist" for built files
-//
-// "clean_urls": true
-//   - Removes .html extensions from URLs
-//   - Example: /about.html becomes /about
-//
-// "error_page": "index.html"
-//   - Page shown for 404 errors
-//   - Important for Single Page Applications (SPAs)
-//
-// "headers": 
-//   - Custom HTTP headers for different paths
-//   - "/**" applies to all files
-//   - "/assets/**" applies to all files in assets folder
-//   - Cache-Control helps with performance
-//
-// "redirects":
-//   - URL redirects for old pages or shortcuts
-//   - Status 301 = permanent redirect
-//   - Status 302 = temporary redirect
-//
-// "routes":
-//   - Route all requests to index.html (for SPAs)
-//   - Allows client-side routing to work
-//
-// "https_only": true
-//   - Forces HTTPS connections for security
-//
-// "basic_auth": false
-//   - Set to true and configure if you need password protection
-//   - Example: "basic_auth": {"username": "password"}
-//
-// FOR STUDENTS:
-// =============
-// 1. For a simple static site, the default settings work great
-// 2. For React/Vue/Angular apps, keep "routes" pointing to index.html
-// 3. Adjust "root" if your built files are in a different directory
-// 4. Use "headers" to improve caching and performance
-// 5. Remove the comment lines before deploying (JSON doesn't support comments)
-//
-// COMMON CONFIGURATIONS:
-//
-// For Create React App:
-//   "root": "./build"
-//
-// For Vue/Vite:
-//   "root": "./dist"
-//
-// For Next.js static export:
-//   "root": "./out"
-//
-// For plain HTML site:
-//   "root": "./"
