@@ -13,6 +13,22 @@ Dit rapport documenteert de implementatie van DevOps-principes voor het JDM (Juv
 
 ---
 
+## Live Demonstratie
+
+De JDM Patiënt Portal is live beschikbaar en volledig operationeel:
+
+**🌐 Production URL: https://dev-ops-production.up.railway.app/**
+
+Deze deployment demonstreert:
+- ✅ **Succesvolle Railway deployment** - De applicatie draait stabiel in productie
+- ✅ **Complete CI/CD pipeline** - Automatische deployment bij elke push naar main branch
+- ✅ **Real-time monitoring** - Railway metrics en logging actief
+- ✅ **DevOps principes in actie** - The Three Ways volledig geïmplementeerd
+
+De live omgeving toont de praktische implementatie van alle in dit rapport beschreven DevOps-praktijken, inclusief automated testing, continuous deployment, en production monitoring.
+
+---
+
 ## 2. Projectcontext
 
 ### 2.1 Achtergrond JDM

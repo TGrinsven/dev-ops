@@ -1,0 +1,8 @@
+[project]
+id = "009cdd2e-ef17-4217-b37a-91018390dead"
+
+[environments.production]
+id = "production"
+
+[service]
+name = "dev-ops"
