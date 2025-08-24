@@ -2,7 +2,7 @@
 ## JDM Patiënt Portal - DevOps Implementatie
 
 ### Auteur: Jose Kaanene Torres van Grinsven
-### Datum: December 2024
+### Datum: Augustus 2025
 ### Opleiding: HBO-ICT, Individueel Project
 
 ---

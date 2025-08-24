@@ -3,7 +3,7 @@
 
 ### Auteur: Jose Kaanene Torres van Grinsven
 ### Studentnummer: 2204077  
-### Datum: December 2024
+### Datum: Augustus 2025
 ### Opleiding: HBO-ICT, Software Engineering
 ### Project: DevOps Implementatie JDM Portal (Individueel)
 
