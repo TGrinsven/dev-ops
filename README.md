@@ -1,6 +1,27 @@
 # JDM Portal
 
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen?style=for-the-badge&logo=railway)](https://dev-ops-production.up.railway.app/)
+[![GitHub](https://img.shields.io/badge/github-repo-blue?style=for-the-badge&logo=github)](https://github.com/TGrinsven/dev-ops)
+[![Railway](https://img.shields.io/badge/deployed%20on-Railway-purple?style=for-the-badge&logo=railway)](https://railway.app)
+[![Node.js](https://img.shields.io/badge/node.js-v18+-green?style=for-the-badge&logo=node.js)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge)](LICENSE)
+
+> 🚀 **Live Application**: [https://dev-ops-production.up.railway.app/](https://dev-ops-production.up.railway.app/)  
+> 📦 **GitHub Repository**: [https://github.com/TGrinsven/dev-ops](https://github.com/TGrinsven/dev-ops)
+
 A modern web portal application built with Node.js and Express, designed for efficient data management and user interaction.
+
+## 🔗 Quick Links
+
+| Resource | Description | Link |
+|----------|-------------|------|
+| 🌐 **Live Application** | Production deployment | [dev-ops-production.up.railway.app](https://dev-ops-production.up.railway.app/) |
+| 💻 **GitHub Repository** | Source code & issues | [github.com/TGrinsven/dev-ops](https://github.com/TGrinsven/dev-ops) |
+| 🚂 **Railway Dashboard** | Deployment platform | [railway.app](https://railway.app) |
+| 📖 **API Documentation** | API endpoints reference | [/api-docs](https://dev-ops-production.up.railway.app/api-docs) |
+| 🏥 **Health Check** | Service status | [/health](https://dev-ops-production.up.railway.app/health) |
+| 🐛 **Report Issues** | Bug reports & features | [GitHub Issues](https://github.com/TGrinsven/dev-ops/issues) |
+| 🔄 **Pull Requests** | Contribute to project | [GitHub PRs](https://github.com/TGrinsven/dev-ops/pulls) |
 
 ## 📋 Table of Contents
 
@@ -73,8 +94,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-organization/jdm-portal.git
-cd jdm-portal
+git clone https://github.com/TGrinsven/dev-ops.git
+cd dev-ops
 ```
 
 ### 2. Install Dependencies
